@@ -21,7 +21,7 @@ public class Frame extends JFrame{
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setTitle("Game");	
 		setVisible(true);
-		Game g = new Game();
+		Menu g = new Menu(this);
 		add(g);
 	}
 

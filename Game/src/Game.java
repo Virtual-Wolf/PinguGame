@@ -1,6 +1,8 @@
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -54,9 +56,9 @@ public class Game extends JPanel implements Runnable {
 	public long dStart, dStop;
 	
 	
-	public Game() {
+	public Game(Room r, Frame f) {
 		rand = new Random();
-		currentRoom = new Room("blank");
+		currentRoom = r;
 		walk1 = new ImageIcon(getClass().getResource("gfx/penguin_walk01.png"));
 		walk2 = new ImageIcon(getClass().getResource("gfx/penguin_walk02.png"));
 		walk3 = new ImageIcon(getClass().getResource("gfx/penguin_walk03.png"));
@@ -77,8 +79,17 @@ public class Game extends JPanel implements Runnable {
 		snowflake = new ImageIcon(getClass().getResource("gfx/object_snowflake.png"));
 		igloo = new ImageIcon(getClass().getResource("gfx/object_igloo.png"));
 		repaint();
-		setFocusable(true);
-		this.addKeyListener(new KeyEvents());
+		addKeyListener(new KeyEvents());
+		addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+            	if (pingWon || !pingAlive) {
+            		executor.shutdown();
+            		f.setContentPane(new Menu(f));
+            		f.revalidate();
+            	}
+            }
+		});
 		executor = Executors.newScheduledThreadPool(1);
 		executor.scheduleAtFixedRate(this, 0, 15, TimeUnit.MILLISECONDS);
 		dStart = System.currentTimeMillis();
@@ -206,6 +217,7 @@ public class Game extends JPanel implements Runnable {
 	}
 	@Override
 	public void run() {
+		this.requestFocus();
 		if (pingAlive && !pingWon) {
 			if((scrollPos/64) < currentRoom.ySize) {
 				scrollPos += scrollSpeed;

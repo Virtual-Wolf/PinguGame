@@ -19,15 +19,11 @@ public class Menu extends JPanel implements Runnable {
 		addMouseListener(new MouseAdapter() {
             @Override
             public void mouseReleased(MouseEvent e) {
-            	System.out.println("a");
             	int offset = 0;
                 for(Level l : Level.values()) {
-                	System.out.println("b" + l.id);
                 	if((new Rectangle(400, 257 + offset, 64, 64)).contains(e.getPoint())) {
-                		System.out.println("c");
                 		f.setContentPane(new Game(l.room, f));
                 		f.revalidate();
-                		System.out.println("d");
                 	}
                 	offset+= 100;
                 }

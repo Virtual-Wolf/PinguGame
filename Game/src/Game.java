@@ -1,4 +1,4 @@
-import java.awt.*;
+import java.awt.*; 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
@@ -17,6 +17,7 @@ public class Game extends JPanel implements Runnable {
 	public ImageIcon background, walk1, walk2, walk3, walk4, jump1, jump2, slide1, slide2, fall, death1, death2, death3, death4;
 	public ImageIcon block1, igloo;
 	public ImageIcon snowflake;
+	public ImageIcon snowmanl1, snowmanl2, snowmanr1, snowmanr2;
 	public ImageIcon gameW, gameO;
 	
 	public ArrayList<Room> rooms = new ArrayList<Room>();
@@ -36,6 +37,7 @@ public class Game extends JPanel implements Runnable {
 	public int pFY = 0;
 	public int score = 0;
 	public int pingSpeed = 2;
+	public int enemySpeed = 1;
 	public int pingJumpSpeed = 3;
 	public int pingSlideSpeed = 3;
 	public int pingDir = 1;
@@ -72,6 +74,10 @@ public class Game extends JPanel implements Runnable {
 		death2 = new ImageIcon(getClass().getResource("gfx/penguin_die02.png"));
 		death3 = new ImageIcon(getClass().getResource("gfx/penguin_die03.png"));
 		death4 = new ImageIcon(getClass().getResource("gfx/penguin_die04.png"));
+		snowmanl1 = new ImageIcon(getClass().getResource("gfx/snowman_left_1.png"));
+		snowmanl2 = new ImageIcon(getClass().getResource("gfx/snowman_left_2.png"));
+		snowmanr1 = new ImageIcon(getClass().getResource("gfx/snowman_right_1.png"));
+		snowmanr2 = new ImageIcon(getClass().getResource("gfx/snowman_right_2.png"));
 		background = new ImageIcon(getClass().getResource("gfx/Abstract_bg_blueswirl.png"));
 		block1 = new ImageIcon(getClass().getResource("gfx/block_ground_00_single.png"));
 		gameW = new ImageIcon(getClass().getResource("gfx/GameWon.png"));
@@ -149,6 +155,25 @@ public class Game extends JPanel implements Runnable {
 				g.drawImage(pingI, pX, pY, null);
 			}
 		}
+		for (Room.Enemy e : currentRoom.enemies) {
+			Image eI = snowmanl1.getImage();
+			if (e.walkState < 8) {
+				if (e.dir == 1) {
+					eI = snowmanr1.getImage();
+				}
+			} else {
+				if (e.dir == 1) {
+					eI = snowmanr2.getImage();
+				} else {
+					eI = snowmanl2.getImage();
+				}
+			}
+			if (e.dir == -1) {
+				g.drawImage(eI, e.x  + 64, e.y - scrollPos, - 64, 64, null);
+			} else {
+				g.drawImage(eI, e.x, e.y - scrollPos, 64, 64, null);
+			}
+		}
 		int x = 0, y = 0;
 		 for(x=0;x<16;x++) {
 			 for (y=0;y<currentRoom.ySize;y++) {
@@ -217,8 +242,8 @@ public class Game extends JPanel implements Runnable {
 	}
 	@Override
 	public void run() {
-		this.requestFocus();
 		if (pingAlive && !pingWon) {
+			this.requestFocus();
 			if((scrollPos/64) < currentRoom.ySize) {
 				scrollPos += scrollSpeed;
 				scrollBackground += scrollSpeed;
@@ -338,6 +363,38 @@ public class Game extends JPanel implements Runnable {
 			}
 			Rectangle pHb = getPingHitbox();
 			pHb.setBounds((int)pHb.getX(), (int) pHb.getY(), 48, 62);
+			for (int n = 0; n < currentRoom.enemies.size(); n++) {
+				boolean passable = true;
+				Rectangle p1 = new Rectangle((int)currentRoom.enemies.get(n).getImgHitbox().getMinX(), (int)currentRoom.enemies.get(n).getImgHitbox().getMaxY(), 10, 10);
+				Rectangle p2 = new Rectangle((int)currentRoom.enemies.get(n).getImgHitbox().getMaxX(), (int)currentRoom.enemies.get(n).getImgHitbox().getMaxY(), 10, 10);
+				boolean p1in = false;
+				boolean p2in = false;
+				for (Rectangle r : currentRoom.impassable) {				
+					if (r.intersects(currentRoom.enemies.get(n).getImgHitbox())) {
+						passable = false;
+					}
+					if (r.intersects(p1)) {
+						p1in = true;
+					}
+					if (r.intersects(p2)) {
+						p2in = true;
+					}
+				}
+				if (!p1in || !p2in) {
+					passable = false;
+				}
+				if (!passable) {
+					currentRoom.enemies.get(n).dir = currentRoom.enemies.get(n).dir * -1;
+				}
+				currentRoom.enemies.get(n).x += enemySpeed * currentRoom.enemies.get(n).dir;
+				currentRoom.enemies.get(n).walkState ++;
+				if (currentRoom.enemies.get(n).walkState > 16) {
+					currentRoom.enemies.get(n).walkState = 1;
+				}
+				if(currentRoom.enemies.get(n).getHitbox().intersects(pHb)) {
+					pingAlive = false;
+				}
+			}
 			for(String s : currentRoom.sfHitboxes.keySet()) {
 				if(!usedSnowflakes.contains(s)) {
 				Rectangle r = currentRoom.sfHitboxes.get(s);
@@ -348,9 +405,11 @@ public class Game extends JPanel implements Runnable {
 				}
 			}
 			if(currentRoom.finishPoint.intersects(pHb)) {
-				pingWon = true;
-				pFY = pY + scrollPos;
-				dStop = System.currentTimeMillis();
+				if(pingAlive) {
+					pingWon = true;
+					pFY = pY + scrollPos;
+					dStop = System.currentTimeMillis();
+				}
 			}
 		} else if(pingDeathStage < 1000) {
 			boolean passable = true;
